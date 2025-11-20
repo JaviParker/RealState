@@ -20,7 +20,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.RealState"
+      "package": "com.dalton.realstate"
     },
     "web": {
       "output": "static",

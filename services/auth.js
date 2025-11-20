@@ -24,19 +24,30 @@ GoogleSignin.configure({
 // --- Sign in with Google ---
 export const googleSignIn = async () => {
   try {
-    // 1. Check if device has Google Play Services
+    // 1. Verificar servicios
     await GoogleSignin.hasPlayServices();
     
-    // 2. Get the user's ID token
-    const { idToken } = await GoogleSignin.signIn();
+    // 2. Iniciar sesión
+    const response = await GoogleSignin.signIn();
     
-    // 3. Create a Google credential with the token
+    // --- AQUÍ ESTÁ EL CAMBIO CRÍTICO ---
+    // La versión nueva (v13) guarda el token dentro de 'data'.
+    // La versión vieja lo tenía directo en 'response.idToken'.
+    // Esta línea funciona para ambas versiones:
+    const idToken = response.data?.idToken || response.idToken;
+
+    if (!idToken) {
+      throw new Error("No se encontró el ID Token de Google");
+    }
+
+    // 3. Crear credencial para Firebase
     const googleCredential = GoogleAuthProvider.credential(idToken);
     
-    // 4. Sign-in the user with the credential
+    // 4. Login en Firebase
     return await signInWithCredential(auth, googleCredential);
+
   } catch (error) {
-    console.error("Google Sign-In Error:", error);
+    console.error("Google Sign-In Error Detallado:", error);
     throw error;
   }
 };
