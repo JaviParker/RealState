@@ -65,11 +65,20 @@ export const emailSignIn = async (email, password) => {
 // --- Sign Out ---
 export const logOut = async () => {
   try {
-    // Sign out from Firebase
+    // 1. Intentamos cerrar la sesión de Google primero
+    // Lo envolvemos en su propio try-catch para que si falla, NO detenga el proceso
+    try {
+      await GoogleSignin.signOut();
+    } catch (googleError) {
+      // Si falla es normal (ej: el usuario usó email/password y no Google)
+      console.log("Nota: No había sesión de Google para cerrar o falló el cierre local.");
+    }
+
+    // 2. Cerramos la sesión de Firebase (Esto es lo obligatorio)
     await signOut(auth);
-    // Also sign out from Google
-    await GoogleSignin.signOut();
+    
   } catch (error) {
-    console.error("Sign-Out Error:", error);
+    console.error("Error crítico al cerrar sesión:", error);
+    throw error;
   }
 };

@@ -38,7 +38,19 @@ export default function TabsLayout() {
           ),
         }}
       />
-      
+
+      {/* Tab 2: Properties list*/}
+      <Tabs.Screen
+        name="properties" // Debe coincidir con el nombre del archivo properties.tsx
+        options={{
+          title: 'Catálogo',
+          tabBarIcon: ({ color, size }) => (
+            // Icono de edificio/propiedad
+            <FontAwesome5 name="building" size={size} color={color} />
+          ),
+        }}
+      />
+
       {/* Tab 2: Budgets Screen */}
       <Tabs.Screen
         name="budgets" // This will link to app/(tabs)/budgets.tsx
