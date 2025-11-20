@@ -1,98 +1,95 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  SafeAreaView,
+  TouchableOpacity,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { useAuth } from '../../contexts/AuthContext'; // Adjust path
+import { logOut } from '../../services/auth'; // Adjust path
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+// --- Our "Luxury House" Color Palette ---
+const COLORS = {
+  background: '#FFFFFF', // White Walls
+  text: '#000000',       // Black Contrast
+  textSecondary: '#555555',
+  accent: '#9A6C42',      // Wood Detail (a warm, rich brown)
+};
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const { user } = useAuth();
+  const router = useRouter();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const handleLogout = async () => {
+    await logOut();
+    // After logging out, the user state will become null.
+    // The "gatekeeper" in `app/index.tsx` will detect this
+    // and show the login screen.
+    // We just need to make sure we're at the root.
+    router.replace('/'); 
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.title}>Welcome, Agent</Text>
+        <Text style={styles.email}>
+          {user ? user.email : 'Loading...'}
+        </Text>
+        
+        <Text style={styles.info}>
+          This is your main dashboard. From here you can start a new client 
+          budget or view your saved budgets.
+        </Text>
+
+        {/* We will add the "Start Workflow" button here later */}
+        
+        {/* Logout Button */}
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutButtonText}>Sign Out</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  content: {
+    flex: 1,
+    padding: 24,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  email: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    marginBottom: 24,
+  },
+  info: {
+    fontSize: 16,
+    color: COLORS.text,
+    lineHeight: 24,
+    marginBottom: 40,
+  },
+  logoutButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: COLORS.accent, // Wood brown button
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  logoutButtonText: {
+    color: COLORS.background, // White text
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
