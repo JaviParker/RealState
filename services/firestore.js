@@ -69,3 +69,19 @@ export const obtenerPropiedades = async () => {
     throw error;
   }
 };
+
+// --- FUNCIÓN 3: AGREGAR PROPIEDAD ---
+export const agregarPropiedad = async (nuevaPropiedad) => {
+  try {
+    // Agregamos fecha de creación por si sirve para ordenar luego
+    const docRef = await addDoc(collection(db, COLLECTION_NAME), {
+      ...nuevaPropiedad,
+      createdAt: new Date(),
+    });
+    console.log("Propiedad agregada con ID: ", docRef.id);
+    return true;
+  } catch (error) {
+    console.error("Error agregando propiedad: ", error);
+    return false;
+  }
+};
