@@ -1,5 +1,5 @@
 // services/firestore.js
-import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig'; // Asegúrate que la ruta sea correcta
 
 // Nombre de la colección en Firebase
@@ -82,6 +82,19 @@ export const agregarPropiedad = async (nuevaPropiedad) => {
     return true;
   } catch (error) {
     console.error("Error agregando propiedad: ", error);
+    return false;
+  }
+};
+
+// --- FUNCIÓN 4: ACTUALIZAR PROPIEDAD ---
+export const actualizarPropiedad = async (id, datosActualizados) => {
+  try {
+    const docRef = doc(db, COLLECTION_NAME, id);
+    await updateDoc(docRef, datosActualizados);
+    console.log("Propiedad actualizada ID: ", id);
+    return true;
+  } catch (error) {
+    console.error("Error actualizando propiedad: ", error);
     return false;
   }
 };

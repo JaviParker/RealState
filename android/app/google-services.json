@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1051151033332",
+    "project_id": "realstate-f66b5",
+    "storage_bucket": "realstate-f66b5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1051151033332:android:b919af195299e56c188fa1",
+        "android_client_info": {
+          "package_name": "com.dalton.realstate"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1051151033332-b7sclhsc2qbmundnq01hqem6bivutvt8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dalton.realstate",
+            "certificate_hash": "0e56fb4f58c4a3e018c860548fd82c8af9f0605c"
+          }
+        },
+        {
+          "client_id": "1051151033332-q8e61a1o775nihl9m795fo0lgmarecuj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2CzfSgo62J14CLy18YhTZX_0gqUT0mBo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1051151033332-q8e61a1o775nihl9m795fo0lgmarecuj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

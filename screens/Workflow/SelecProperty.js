@@ -11,13 +11,11 @@ import {
   Alert,
   Modal,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView
 } from 'react-native';
-// Importamos la nueva función agregarPropiedad
-import { obtenerPropiedades, sembrarPropiedades, agregarPropiedad } from '../../services/firestore'; 
-import { FontAwesome5, Ionicons } from '@expo/vector-icons';
+// Importamos la nueva función actualizarPropiedad
+import { obtenerPropiedades, sembrarPropiedades, agregarPropiedad, actualizarPropiedad } from '../../services/firestore'; 
+import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 
 // --- COLORES DE LUJO ---
 const COLORS = {
@@ -39,6 +37,8 @@ export default function SelectProperty() {
   // Estados para el Modal y Formulario
   const [modalVisible, setModalVisible] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [editingId, setEditingId] = useState(null); // NULL = Creando, ID = Editando
+
   const [form, setForm] = useState({
     titulo: '',
     direccion: '',
@@ -47,7 +47,7 @@ export default function SelectProperty() {
     banos: '',
     metrosTerreno: '',
     descripcion: '',
-    imagen: 'https://images.unsplash.com/photo-1600596542815-22b489997b6d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' // Imagen por defecto temporal
+    imagen: 'https://images.unsplash.com/photo-1600596542815-22b489997b6d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
   });
 
   useEffect(() => {
@@ -70,17 +70,39 @@ export default function SelectProperty() {
     setLoading(true);
     const success = await sembrarPropiedades();
     if (success) {
-      Alert.alert("Éxito", "Base de datos poblada. Recargando...");
+      Alert.alert("Éxito", "Base de datos poblada.");
       await cargarDatos();
-    } else {
-      Alert.alert("Error", "Falló la carga de datos iniciales");
-      setLoading(false);
     }
   };
 
-  // --- LÓGICA PARA GUARDAR NUEVA PROPIEDAD ---
+  // --- ABRIR MODAL PARA CREAR ---
+  const abrirModalCrear = () => {
+    setEditingId(null); // Modo crear
+    setForm({ // Limpiar
+      titulo: '', direccion: '', precio: '', habitaciones: '', banos: '', metrosTerreno: '', descripcion: '', 
+      imagen: 'https://images.unsplash.com/photo-1600596542815-22b489997b6d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+    });
+    setModalVisible(true);
+  };
+
+  // --- ABRIR MODAL PARA EDITAR ---
+  const abrirModalEditar = (item) => {
+    setEditingId(item.id); // Modo editar
+    setForm({
+      titulo: item.titulo,
+      direccion: item.direccion,
+      precio: item.precio.toString(), // Convertir a string para el input
+      habitaciones: item.habitaciones.toString(),
+      banos: item.banos.toString(),
+      metrosTerreno: item.metrosTerreno.toString(),
+      descripcion: item.descripcion || '',
+      imagen: item.imagen
+    });
+    setModalVisible(true);
+  };
+
+  // --- GUARDAR (CREAR O ACTUALIZAR) ---
   const handleGuardarPropiedad = async () => {
-    // 1. Validación básica
     if (!form.titulo || !form.precio || !form.direccion) {
       Alert.alert("Faltan datos", "Por favor completa título, precio y dirección.");
       return;
@@ -88,8 +110,7 @@ export default function SelectProperty() {
 
     setUploading(true);
 
-    // 2. Preparamos el objeto (convertir números)
-    const nuevaPropiedad = {
+    const datosProcesados = {
       ...form,
       precio: parseFloat(form.precio) || 0,
       habitaciones: parseInt(form.habitaciones) || 0,
@@ -97,19 +118,22 @@ export default function SelectProperty() {
       metrosTerreno: parseFloat(form.metrosTerreno) || 0,
     };
 
-    // 3. Enviar a Firebase
-    const success = await agregarPropiedad(nuevaPropiedad);
+    let success = false;
+
+    if (editingId) {
+      // ESTAMOS EDITANDO
+      success = await actualizarPropiedad(editingId, datosProcesados);
+    } else {
+      // ESTAMOS CREANDO
+      success = await agregarPropiedad(datosProcesados);
+    }
 
     if (success) {
-      Alert.alert("Éxito", "Propiedad agregada correctamente");
-      setModalVisible(false); // Cerrar modal
-      setForm({ // Limpiar form
-        titulo: '', direccion: '', precio: '', habitaciones: '', banos: '', metrosTerreno: '', descripcion: '', 
-        imagen: 'https://images.unsplash.com/photo-1600596542815-22b489997b6d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
-      });
-      cargarDatos(); // Recargar la lista
+      Alert.alert("Éxito", `Propiedad ${editingId ? 'actualizada' : 'creada'} correctamente`);
+      setModalVisible(false);
+      cargarDatos();
     } else {
-      Alert.alert("Error", "No se pudo guardar la propiedad");
+      Alert.alert("Error", "No se pudo guardar los cambios");
     }
     setUploading(false);
   };
@@ -117,6 +141,15 @@ export default function SelectProperty() {
   const renderCard = ({ item }) => (
     <View style={styles.card}>
       <Image source={{ uri: item.imagen }} style={styles.cardImage} />
+      
+      {/* Botón de Editar sobre la imagen o en la esquina */}
+      <TouchableOpacity 
+        style={styles.editButtonCard} 
+        onPress={() => abrirModalEditar(item)}
+      >
+        <MaterialIcons name="edit" size={20} color="#FFF" />
+      </TouchableOpacity>
+
       <View style={styles.cardContent}>
         <Text style={styles.price}>${item.precio?.toLocaleString()}</Text>
         <Text style={styles.title} numberOfLines={1}>{item.titulo}</Text>
@@ -173,17 +206,16 @@ export default function SelectProperty() {
         />
       )}
 
-      {/* --- BOTÓN FLOTANTE (FAB) --- */}
+      {/* FAB para CREAR */}
       <TouchableOpacity 
         style={styles.fab} 
-        onPress={() => setModalVisible(true)}
+        onPress={abrirModalCrear}
         activeOpacity={0.8}
       >
         <Ionicons name="add" size={30} color="#FFF" />
       </TouchableOpacity>
 
-
-      {/* --- MODAL DEL FORMULARIO --- */}
+      {/* MODAL */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -193,7 +225,10 @@ export default function SelectProperty() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Nueva Propiedad</Text>
+              {/* Título dinámico */}
+              <Text style={styles.modalTitle}>
+                {editingId ? "Editar Propiedad" : "Nueva Propiedad"}
+              </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={24} color={COLORS.text} />
               </TouchableOpacity>
@@ -278,7 +313,9 @@ export default function SelectProperty() {
                 {uploading ? (
                     <ActivityIndicator color="#FFF" />
                 ) : (
-                    <Text style={styles.saveButtonText}>Guardar Propiedad</Text>
+                    <Text style={styles.saveButtonText}>
+                        {editingId ? "Actualizar Cambios" : "Guardar Propiedad"}
+                    </Text>
                 )}
               </TouchableOpacity>
 
@@ -286,7 +323,6 @@ export default function SelectProperty() {
           </View>
         </View>
       </Modal>
-
     </View>
   );
 }
@@ -329,11 +365,28 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
     overflow: 'hidden',
+    position: 'relative', // Necesario para posicionar el botón de editar
   },
   cardImage: {
     width: '100%',
     height: 200,
     resizeMode: 'cover',
+  },
+  // ESTILO NUEVO: Botón de editar en la tarjeta
+  editButtonCard: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    backgroundColor: COLORS.accent,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 }
   },
   cardContent: {
     padding: 20,
@@ -395,7 +448,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
-  // --- ESTILOS NUEVOS ---
   fab: {
     position: 'absolute',
     bottom: 30,
@@ -403,7 +455,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: COLORS.accent, // Color madera
+    backgroundColor: COLORS.accent,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
@@ -416,14 +468,14 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end', // El modal sube desde abajo
+    justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: COLORS.background,
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
     padding: 25,
-    height: '85%', // Ocupa casi toda la pantalla
+    height: '85%',
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.25,
@@ -460,7 +512,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   saveButton: {
-    backgroundColor: COLORS.text, // Negro
+    backgroundColor: COLORS.text,
     padding: 18,
     borderRadius: 15,
     marginTop: 30,
