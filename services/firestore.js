@@ -15,7 +15,13 @@ const propiedadesDummy = [
     habitaciones: 4,
     banos: 3.5,
     metrosTerreno: 350,
-    imagen: "https://images.unsplash.com/photo-1600596542815-22b489997b6d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    imagen: "https://images.unsplash.com/photo-1600596542815-22b489997b6d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    // AQUÍ ESTÁN LOS ÍTEMS
+    items: [
+      { id: 'i1', nombre: 'Muebles de Lujo', costo: 250000 },
+      { id: 'i2', nombre: 'Portón Eléctrico', costo: 20000 },
+      { id: 'i3', nombre: 'Jacuzzi Exterior', costo: 150000 }
+    ]
   },
   {
     titulo: "Departamento Loft Urbano",
@@ -25,7 +31,12 @@ const propiedadesDummy = [
     habitaciones: 2,
     banos: 2,
     metrosTerreno: 120,
-    imagen: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    imagen: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    items: [
+      { id: 'i1', nombre: 'Muebles de Diseñador', costo: 250000 },
+      { id: 'i2', nombre: 'Persianas Eléctricas', costo: 20000 }, // Ejemplo de variación
+      { id: 'i3', nombre: 'Jacuzzi en Terraza', costo: 150000 }
+    ]
   },
   {
     titulo: "Casa de Campo Los Robles",
@@ -35,7 +46,12 @@ const propiedadesDummy = [
     habitaciones: 3,
     banos: 3,
     metrosTerreno: 500,
-    imagen: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    imagen: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    items: [
+      { id: 'i1', nombre: 'Muebles Rústicos', costo: 250000 },
+      { id: 'i2', nombre: 'Portón de Seguridad', costo: 20000 },
+      { id: 'i3', nombre: 'Jacuzzi con Calefacción', costo: 150000 }
+    ]
   }
 ];
 
@@ -95,6 +111,22 @@ export const actualizarPropiedad = async (id, datosActualizados) => {
     return true;
   } catch (error) {
     console.error("Error actualizando propiedad: ", error);
+    return false;
+  }
+};
+
+// --- NUEVA FUNCIÓN: GUARDAR COTIZACIÓN ---
+export const guardarCotizacion = async (datosCotizacion) => {
+  try {
+    const docRef = await addDoc(collection(db, 'cotizaciones'), {
+      ...datosCotizacion,
+      fecha: new Date(), // Guardamos la fecha exacta
+      estado: 'pendiente' // Estado inicial
+    });
+    console.log("Cotización guardada ID: ", docRef.id);
+    return true;
+  } catch (error) {
+    console.error("Error guardando cotización: ", error);
     return false;
   }
 };
