@@ -1,17 +1,28 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from "react";
 import {
-  View, Text, StyleSheet, FlatList, Image, TouchableOpacity,
-  ActivityIndicator, RefreshControl
-} from 'react-native';
-import { useAuth } from '../../contexts/AuthContext'; // Para saber quién está logueado
-import { obtenerMisCotizaciones } from '../../services/firestore';
-import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router'; // Para recargar al volver a la pestaña
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Image,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+} from "react-native";
+import { useAuth } from "../../contexts/AuthContext"; // Para saber quién está logueado
+import { obtenerMisCotizaciones } from "../../services/firestore";
+import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
+import { useFocusEffect } from "expo-router"; // Para recargar al volver a la pestaña
+import { useRouter } from "expo-router";
 
 const COLORS = {
-  background: '#FFFFFF', text: '#000000', textLight: '#666666',
-  accent: '#9A6C42', cardBg: '#F9F9F9',
-  success: '#28a745', warning: '#ffc107'
+  background: "#FFFFFF",
+  text: "#000000",
+  textLight: "#666666",
+  accent: "#9A6C42",
+  cardBg: "#F9F9F9",
+  success: "#28a745",
+  warning: "#ffc107",
 };
 
 export default function BudgetsScreen() {
@@ -19,6 +30,8 @@ export default function BudgetsScreen() {
   const [cotizaciones, setCotizaciones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const router = useRouter();
 
   // Función para cargar datos
   const cargarDatos = async () => {
@@ -47,23 +60,37 @@ export default function BudgetsScreen() {
   };
 
   const renderCotizacion = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.card} activeOpacity={0.9}>
+    <TouchableOpacity
+      style={styles.card}
+      activeOpacity={0.9}
+      onPress={() => {
+        router.push({
+          pathname: "../Workflow/quoteDetail",
+          params: { cotizacion: JSON.stringify(item) }, // Enviamos todo el objeto
+        });
+      }}
+    >
       <View style={styles.cardHeader}>
-        <Image 
-          source={{ uri: item.propiedad?.imagen || 'https://via.placeholder.com/150' }} 
-          style={styles.propImage} 
+        <Image
+          source={{
+            uri: item.propiedad?.imagen || "https://via.placeholder.com/150",
+          }}
+          style={styles.propImage}
         />
         <View style={styles.headerInfo}>
-          <Text style={styles.propTitle} numberOfLines={1}>{item.propiedad?.titulo}</Text>
+          <Text style={styles.propTitle} numberOfLines={1}>
+            {item.propiedad?.titulo}
+          </Text>
           <Text style={styles.clientName}>
-            <FontAwesome5 name="user" size={12} color={COLORS.textLight} /> {item.cliente?.nombre}
+            <FontAwesome5 name="user" size={12} color={COLORS.textLight} />{" "}
+            {item.cliente?.nombre}
           </Text>
           <Text style={styles.date}>
             {new Date(item.fecha?.seconds * 1000).toLocaleDateString()}
           </Text>
         </View>
         <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>{item.estado?.toUpperCase()}</Text>
+          <Text style={styles.statusText}>{item.estado?.toUpperCase()}</Text>
         </View>
       </View>
 
@@ -71,11 +98,11 @@ export default function BudgetsScreen() {
 
       <View style={styles.cardFooter}>
         <View>
-            <Text style={styles.label}>Total Cotizado</Text>
-            <Text style={styles.totalPrice}>${item.total?.toLocaleString()}</Text>
+          <Text style={styles.label}>Total Cotizado</Text>
+          <Text style={styles.totalPrice}>${item.total?.toLocaleString()}</Text>
         </View>
         <TouchableOpacity style={styles.actionButton}>
-            <MaterialIcons name="visibility" size={20} color="#FFF" />
+          <MaterialIcons name="visibility" size={20} color="#FFF" />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -88,7 +115,11 @@ export default function BudgetsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color={COLORS.accent} style={{marginTop: 50}} />
+        <ActivityIndicator
+          size="large"
+          color={COLORS.accent}
+          style={{ marginTop: 50 }}
+        />
       ) : (
         <FlatList
           data={cotizaciones}
@@ -96,12 +127,18 @@ export default function BudgetsScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.accent]} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLORS.accent]}
+            />
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-                <FontAwesome5 name="folder-open" size={50} color="#DDD" />
-                <Text style={styles.emptyText}>No tienes cotizaciones guardadas.</Text>
+              <FontAwesome5 name="folder-open" size={50} color="#DDD" />
+              <Text style={styles.emptyText}>
+                No tienes cotizaciones guardadas.
+              </Text>
             </View>
           }
         />
@@ -113,9 +150,9 @@ export default function BudgetsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   titleContainer: { padding: 20, paddingBottom: 10 },
-  headerTitle: { fontSize: 28, fontWeight: 'bold', color: COLORS.text },
+  headerTitle: { fontSize: 28, fontWeight: "bold", color: COLORS.text },
   listContent: { padding: 15 },
-  
+
   card: {
     backgroundColor: COLORS.cardBg,
     borderRadius: 15,
@@ -127,38 +164,48 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  cardHeader: { flexDirection: 'row', marginBottom: 10 },
+  cardHeader: { flexDirection: "row", marginBottom: 10 },
   propImage: { width: 60, height: 60, borderRadius: 10, marginRight: 15 },
-  headerInfo: { flex: 1, justifyContent: 'center' },
-  propTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.text, marginBottom: 4 },
-  clientName: { fontSize: 14, color: COLORS.textLight, marginBottom: 2 },
-  date: { fontSize: 12, color: '#999' },
-  
-  statusBadge: { 
-    backgroundColor: '#FFF3CD', 
-    paddingHorizontal: 8, 
-    paddingVertical: 4, 
-    borderRadius: 5, 
-    alignSelf: 'flex-start',
-    height: 24,
-    justifyContent: 'center'
+  headerInfo: { flex: 1, justifyContent: "center" },
+  propTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: COLORS.text,
+    marginBottom: 4,
   },
-  statusText: { fontSize: 10, fontWeight: 'bold', color: '#856404' },
+  clientName: { fontSize: 14, color: COLORS.textLight, marginBottom: 2 },
+  date: { fontSize: 12, color: "#999" },
 
-  divider: { height: 1, backgroundColor: '#E0E0E0', marginVertical: 10 },
+  statusBadge: {
+    backgroundColor: "#FFF3CD",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 5,
+    alignSelf: "flex-start",
+    height: 24,
+    justifyContent: "center",
+  },
+  statusText: { fontSize: 10, fontWeight: "bold", color: "#856404" },
 
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  divider: { height: 1, backgroundColor: "#E0E0E0", marginVertical: 10 },
+
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   label: { fontSize: 12, color: COLORS.textLight },
-  totalPrice: { fontSize: 20, fontWeight: 'bold', color: COLORS.success },
-  
+  totalPrice: { fontSize: 20, fontWeight: "bold", color: COLORS.success },
+
   actionButton: {
     backgroundColor: COLORS.accent,
-    width: 40, height: 40,
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center'
+    justifyContent: "center",
+    alignItems: "center",
   },
 
-  emptyState: { alignItems: 'center', marginTop: 100 },
-  emptyText: { color: COLORS.textLight, marginTop: 10, fontSize: 16 }
+  emptyState: { alignItems: "center", marginTop: 100 },
+  emptyText: { color: COLORS.textLight, marginTop: 10, fontSize: 16 },
 });

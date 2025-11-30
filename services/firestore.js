@@ -287,3 +287,19 @@ export const eliminarEquipo = async (id) => {
     return false;
   }
 };
+
+// --- FUNCIÓN 12: ACTUALIZAR COTIZACIÓN COMPLETA ---
+export const actualizarCotizacion = async (id, datosActualizados) => {
+  try {
+    const docRef = doc(db, 'cotizaciones', id);
+    await updateDoc(docRef, {
+        ...datosActualizados,
+        ultimaActualizacion: new Date() // Para saber cuándo se modificó
+    });
+    console.log("Cotización actualizada ID: ", id);
+    return true;
+  } catch (error) {
+    console.error("Error actualizando cotización: ", error);
+    return false;
+  }
+};
