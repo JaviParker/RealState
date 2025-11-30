@@ -302,3 +302,29 @@ export const actualizarCotizacion = async (id, datosActualizados) => {
     return false;
   }
 };
+
+// --- FUNCIÓN 13: OBTENER COTIZACIONES GLOBALES (DASHBOARD) ---
+export const obtenerCotizacionesGlobales = async () => {
+  try {
+    // Queremos todo lo que YA NO ES un borrador/pendiente.
+    // Traemos las que están confirmadas, en construcción o pagadas.
+    const q = query(
+      collection(db, 'cotizaciones'), 
+      where('estado', 'in', ['confirmada', 'construcción', 'pagada'])
+    );
+
+    const querySnapshot = await getDocs(q);
+    const cotizaciones = [];
+    querySnapshot.forEach((doc) => {
+      cotizaciones.push({ id: doc.id, ...doc.data() });
+    });
+    
+    // Ordenamos por fecha (las más recientes primero)
+    // Nota: Si la lista crece mucho, esto debería hacerse con orderBy() en la query
+    // requiriendo un índice compuesto en Firebase.
+    return cotizaciones.sort((a, b) => b.fecha.seconds - a.fecha.seconds);
+  } catch (error) {
+    console.error("Error obteniendo dashboard global: ", error);
+    return [];
+  }
+};
