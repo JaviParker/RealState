@@ -30,9 +30,9 @@ export default function TabsLayout() {
     >
       {/* Tab 1: Home Screen */}
       <Tabs.Screen
-        name="index" // This links to app/(tabs)/index.tsx
+        name="home" // This links to app/(tabs)/home.tsx
         options={{
-          title: 'Home',
+          title: 'Inicio',
           tabBarIcon: ({ color, size }) => (
             <FontAwesome5 name="home" size={size} color={color} />
           ),
@@ -55,7 +55,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="budgets" // This will link to app/(tabs)/budgets.tsx
         options={{
-          title: 'Budgets',
+          title: 'Cotizaciones',
           tabBarIcon: ({ color, size }) => (
             <FontAwesome5 name="file-invoice-dollar" size={size} color={color} />
           ),

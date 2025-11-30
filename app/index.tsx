@@ -45,7 +45,7 @@ export default function LoginScreen() {
     
     if (user) {
       // User is logged in, send them to the main app
-      router.replace('/(tabs)'); // Assumes your main app is in a (tabs) group
+      router.replace('/(tabs)/home'); // Assumes your main app is in a (tabs) group
     }
     // If no user, this screen will just render the Login UI
   }, [user, loading, router]);
