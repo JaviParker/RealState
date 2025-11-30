@@ -6,7 +6,8 @@ import {
   doc, 
   updateDoc, 
   query, 
-  where 
+  where,
+  deleteDoc
 } from 'firebase/firestore';
 import { db } from '../firebaseConfig'; 
 
@@ -190,5 +191,99 @@ export const obtenerMisCotizaciones = async (uidAgente) => {
   } catch (error) {
     console.error("Error obteniendo cotizaciones: ", error);
     return [];
+  }
+};
+
+// --- DATOS DE PRUEBA DE EQUIPOS ---
+const equiposDummy = [
+  {
+    nombre: "Equipo 'Los Maestros'",
+    lider: "Juan Pérez",
+    costoSemanal: 12000,
+    tiempoEstimado: "4 Semanas",
+    imagen: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    nombre: "Constructora FastBuild",
+    lider: "Ing. Rodríguez",
+    costoSemanal: 18000,
+    tiempoEstimado: "3 Semanas",
+    imagen: "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    nombre: "Acabados Finos S.A.",
+    lider: "Arq. Sophia",
+    costoSemanal: 15000,
+    tiempoEstimado: "5 Semanas",
+    imagen: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+  }
+];
+
+// --- FUNCIÓN 7: SEMBRAR EQUIPOS ---
+export const sembrarEquipos = async () => {
+  try {
+    for (const equipo of equiposDummy) {
+      await addDoc(collection(db, 'equipos'), equipo);
+    }
+    return true;
+  } catch (error) {
+    console.error("Error sembrando equipos: ", error);
+    return false;
+  }
+};
+
+// --- FUNCIÓN 8: OBTENER EQUIPOS ---
+export const obtenerEquipos = async () => {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'equipos'));
+    const equipos = [];
+    querySnapshot.forEach((doc) => {
+      equipos.push({ id: doc.id, ...doc.data() });
+    });
+    return equipos;
+  } catch (error) {
+    console.error("Error obteniendo equipos: ", error);
+    return [];
+  }
+};
+
+// --- FUNCIÓN 9: AGREGAR EQUIPO ---
+export const agregarEquipo = async (nuevoEquipo) => {
+  try {
+    // Si no trae imagen, ponemos una por defecto
+    const datos = {
+        ...nuevoEquipo,
+        imagen: nuevoEquipo.imagen || "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+        createdAt: new Date()
+    };
+    const docRef = await addDoc(collection(db, 'equipos'), datos);
+    return true;
+  } catch (error) {
+    console.error("Error agregando equipo: ", error);
+    return false;
+  }
+};
+
+// --- FUNCIÓN 10: ACTUALIZAR EQUIPO ---
+export const actualizarEquipo = async (id, datosActualizados) => {
+  try {
+    const docRef = doc(db, 'equipos', id);
+    await updateDoc(docRef, datosActualizados);
+    return true;
+  } catch (error) {
+    console.error("Error actualizando equipo: ", error);
+    return false;
+  }
+};
+
+// --- FUNCIÓN 11: ELIMINAR EQUIPO ---
+export const eliminarEquipo = async (id) => {
+  try {
+    const docRef = doc(db, 'equipos', id);
+    await deleteDoc(docRef);
+    return true;
+  } catch (error) {
+    console.error("Error eliminando equipo: ", error);
+    return false;
   }
 };
