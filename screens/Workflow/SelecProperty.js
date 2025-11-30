@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   TextInput,
   ScrollView,
 } from "react-native";
+import { useRouter } from "expo-router";
 import {
   obtenerPropiedades,
   sembrarPropiedades,
@@ -20,7 +21,6 @@ import {
   actualizarPropiedad,
 } from "../../services/firestore";
 import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from 'expo-router';
 
 // --- COLORES ---
 const COLORS = {
@@ -37,8 +37,83 @@ const COLORS = {
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.8;
+const CARD_IMAGE_HEIGHT = 200;
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1580587771525-78b9dba3b91d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
+
+// COMPONENTE CARRUSEL
+const ImageCarousel = ({ images }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const timerRef = useRef(null);
+  const validImages = images && images.length > 0 ? images : [DEFAULT_IMAGE];
+
+  const goToNext = () =>
+    setCurrentIndex((prev) => (prev + 1) % validImages.length);
+  const goToPrev = () =>
+    setCurrentIndex(
+      (prev) => (prev - 1 + validImages.length) % validImages.length
+    );
+
+  useEffect(() => {
+    if (validImages.length > 1) startTimer();
+    return () => stopTimer();
+  }, [validImages.length]);
+
+  const startTimer = () => {
+    stopTimer();
+    timerRef.current = setInterval(goToNext, 3000);
+  };
+  const stopTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+  };
+
+  const handleManualNext = () => {
+    stopTimer();
+    goToNext();
+    startTimer();
+  };
+  const handleManualPrev = () => {
+    stopTimer();
+    goToPrev();
+    startTimer();
+  };
+
+  return (
+    <View style={styles.carouselContainer}>
+      <Image
+        source={{ uri: validImages[currentIndex] }}
+        style={styles.cardImage}
+      />
+      {validImages.length > 1 && (
+        <>
+          <TouchableOpacity
+            style={[styles.arrowBtn, styles.arrowLeft]}
+            onPress={handleManualPrev}
+          >
+            <Ionicons name="chevron-back" size={24} color="#FFF" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.arrowBtn, styles.arrowRight]}
+            onPress={handleManualNext}
+          >
+            <Ionicons name="chevron-forward" size={24} color="#FFF" />
+          </TouchableOpacity>
+          <View style={styles.pagination}>
+            {validImages.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.paginationDot,
+                  index === currentIndex ? styles.paginationDotActive : null,
+                ]}
+              />
+            ))}
+          </View>
+        </>
+      )}
+    </View>
+  );
+};
 
 export default function SelectProperty() {
   const router = useRouter();
@@ -49,7 +124,6 @@ export default function SelectProperty() {
   const [modalFormVisible, setModalFormVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
-
   const [form, setForm] = useState({
     titulo: "",
     direccion: "",
@@ -57,7 +131,7 @@ export default function SelectProperty() {
     habitaciones: "",
     banos: "",
     metrosTerreno: "",
-    imagen: "", // Campo para la URL de la imagen
+    imagenes: [""],
     items: [],
   });
 
@@ -86,34 +160,62 @@ export default function SelectProperty() {
     setLoading(true);
     const success = await sembrarPropiedades();
     if (success) {
-      Alert.alert("Datos Generados", "Base de datos reiniciada.");
+      Alert.alert("Datos Actualizados", "Base de datos reiniciada.");
       await cargarDatos();
     }
   };
 
-  // ==========================================
-  // LÓGICA DE GESTIÓN DE ITEMS
-  // ==========================================
+  // --- NAVEGACIÓN A COTIZACIÓN ---
+  const irACotizacion = (propiedad, itemsElegidosIds = []) => {
+    const itemsObj = propiedad.items
+      ? propiedad.items.filter((i) => itemsElegidosIds.includes(i.id))
+      : [];
 
-  const agregarItemAlForm = () => {
-    setForm({
-      ...form,
-      items: [...form.items, { nombre: "", costo: "" }],
+    // FIX CRÍTICO: Seleccionamos la primera imagen del carrusel para que la siguiente pantalla tenga portada
+    const imagenPortada =
+      propiedad.imagenes && propiedad.imagenes.length > 0
+        ? propiedad.imagenes[0]
+        : DEFAULT_IMAGE;
+
+    const propiedadParaCotizar = {
+      ...propiedad,
+      imagen: imagenPortada, // Agregamos este campo para compatibilidad
+    };
+
+    setModalItemsVisible(false);
+    router.push({
+      pathname: "/Workflow/createQuote",
+      params: {
+        propiedad: JSON.stringify(propiedadParaCotizar),
+        items: JSON.stringify(itemsObj),
+      },
     });
   };
 
+  // --- GESTIÓN FORMULARIO ---
+  const agregarCampoImagen = () =>
+    setForm({ ...form, imagenes: [...form.imagenes, ""] });
+  const actualizarCampoImagen = (text, index) => {
+    const nuevas = [...form.imagenes];
+    nuevas[index] = text;
+    setForm({ ...form, imagenes: nuevas });
+  };
+  const borrarCampoImagen = (index) => {
+    const nuevas = form.imagenes.filter((_, i) => i !== index);
+    setForm({ ...form, imagenes: nuevas });
+  };
+
+  const agregarItemAlForm = () =>
+    setForm({ ...form, items: [...form.items, { nombre: "", costo: "" }] });
   const borrarItemDelForm = (index) => {
-    const nuevosItems = form.items.filter((_, i) => i !== index);
-    setForm({ ...form, items: nuevosItems });
+    const nuevos = form.items.filter((_, i) => i !== index);
+    setForm({ ...form, items: nuevos });
   };
-
   const actualizarItemDelForm = (index, campo, texto) => {
-    const nuevosItems = [...form.items];
-    nuevosItems[index] = { ...nuevosItems[index], [campo]: texto };
-    setForm({ ...form, items: nuevosItems });
+    const nuevos = [...form.items];
+    nuevos[index] = { ...nuevos[index], [campo]: texto };
+    setForm({ ...form, items: nuevos });
   };
-
-  // ==========================================
 
   const abrirModalCrear = () => {
     setEditingId(null);
@@ -124,7 +226,7 @@ export default function SelectProperty() {
       habitaciones: "",
       banos: "",
       metrosTerreno: "",
-      imagen: "", // Limpiamos la imagen
+      imagenes: [""],
       items: [],
     });
     setModalFormVisible(true);
@@ -132,6 +234,8 @@ export default function SelectProperty() {
 
   const abrirModalEditar = (item) => {
     setEditingId(item.id);
+    let imagenesForm =
+      item.imagenes && item.imagenes.length > 0 ? item.imagenes : [""];
     setForm({
       titulo: item.titulo,
       direccion: item.direccion,
@@ -139,7 +243,7 @@ export default function SelectProperty() {
       habitaciones: item.habitaciones.toString(),
       banos: item.banos.toString(),
       metrosTerreno: item.metrosTerreno.toString(),
-      imagen: item.imagen || "", // Cargamos la imagen existente
+      imagenes: imagenesForm,
       items: item.items
         ? item.items.map((i) => ({ ...i, costo: i.costo.toString() }))
         : [],
@@ -149,41 +253,35 @@ export default function SelectProperty() {
 
   const handleGuardarPropiedad = async () => {
     if (!form.titulo || !form.precio)
-      return Alert.alert("Error", "Completa los campos requeridos");
-
+      return Alert.alert("Error", "Completa campos requeridos");
     setSaving(true);
     try {
+      const imagenesProcesadas = form.imagenes.filter(
+        (url) => url && url.trim() !== ""
+      );
       const itemsProcesados = form.items.map((item, index) => ({
         id: item.id || `item_${Date.now()}_${index}`,
-        nombre: item.nombre || "Item sin nombre",
+        nombre: item.nombre || "Item",
         costo: parseFloat(item.costo) || 0,
       }));
-
-      const datosProcesados = {
+      const datos = {
         ...form,
-        // Usamos la imagen del form, si está vacía usamos la default
-        imagen:
-          form.imagen && form.imagen.trim() !== ""
-            ? form.imagen
-            : DEFAULT_IMAGE,
+        imagenes: imagenesProcesadas,
+        items: itemsProcesados,
         precio: parseFloat(form.precio) || 0,
         habitaciones: parseInt(form.habitaciones) || 0,
         banos: parseFloat(form.banos) || 0,
         metrosTerreno: parseFloat(form.metrosTerreno) || 0,
-        items: itemsProcesados,
       };
+      delete datos.imagen; // Limpieza
 
-      let success = false;
-      if (editingId) {
-        success = await actualizarPropiedad(editingId, datosProcesados);
-      } else {
-        success = await agregarPropiedad(datosProcesados);
-      }
-
+      let success = editingId
+        ? await actualizarPropiedad(editingId, datos)
+        : await agregarPropiedad(datos);
       if (success) {
         setModalFormVisible(false);
         cargarDatos();
-        Alert.alert("Éxito", "Propiedad guardada correctamente");
+        Alert.alert("Éxito", "Guardado");
       }
     } catch (e) {
       console.error(e);
@@ -193,52 +291,27 @@ export default function SelectProperty() {
     }
   };
 
-  // --- LÓGICA COTIZADOR ---
+  // --- GESTIÓN COTIZADOR ---
   const abrirModalItems = (item) => {
     setSelectedProperty(item);
     setSelectedItemIds([]);
     setModalItemsVisible(true);
   };
-
-  const toggleItemSelection = (itemId) => {
-    if (selectedItemIds.includes(itemId)) {
-      setSelectedItemIds(selectedItemIds.filter((id) => id !== itemId));
-    } else {
-      setSelectedItemIds([...selectedItemIds, itemId]);
-    }
-  };
-
+  const toggleItemSelection = (id) =>
+    setSelectedItemIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
   const calcularTotalExtras = () => {
     if (!selectedProperty?.items) return 0;
     return selectedProperty.items
-      .filter((item) => selectedItemIds.includes(item.id))
-      .reduce((acc, item) => acc + item.costo, 0);
+      .filter((i) => selectedItemIds.includes(i.id))
+      .reduce((acc, i) => acc + i.costo, 0);
   };
 
-  // --- NAVEGACIÓN A COTIZACIÓN FINAL ---
-const irACotizacion = (propiedad, itemsElegidosIds = []) => {
-    // Filtramos los objetos completos de los items basados en los IDs seleccionados
-    const itemsObj = propiedad.items ? propiedad.items.filter(i => itemsElegidosIds.includes(i.id)) : [];
-
-    // Cerramos modales por si acaso
-    setModalItemsVisible(false);
-
-    // Navegamos pasando los datos como string JSON
-    router.push({
-        pathname: '/Workflow/createQuote',
-        params: { 
-            propiedad: JSON.stringify(propiedad),
-            items: JSON.stringify(itemsObj)
-        }
-    });
-};
-
-  // --- RENDER ---
   const renderCard = ({ item }) => (
     <View style={styles.card}>
-      <Image
-        source={{ uri: item.imagen || DEFAULT_IMAGE }}
-        style={styles.cardImage}
+      <ImageCarousel
+        images={item.imagenes || (item.imagen ? [item.imagen] : [])}
       />
       <TouchableOpacity
         style={styles.editButtonCard}
@@ -267,7 +340,10 @@ const irACotizacion = (propiedad, itemsElegidosIds = []) => {
             <FontAwesome5 name="list" size={14} color={COLORS.text} />
             <Text style={styles.itemsButtonText}>Cotizar Extras</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.selectButton} onPress={() => irACotizacion(item, [])}>
+          <TouchableOpacity
+            style={styles.selectButton}
+            onPress={() => irACotizacion(item, [])}
+          >
             <Text style={styles.selectButtonText}>Seleccionar</Text>
           </TouchableOpacity>
         </View>
@@ -277,8 +353,7 @@ const irACotizacion = (propiedad, itemsElegidosIds = []) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headerTitle}>Cotizador de Propiedades</Text>
-
+      <Text style={styles.headerTitle}>Catálogo</Text>
       {loading ? (
         <ActivityIndicator
           size="large"
@@ -306,12 +381,11 @@ const irACotizacion = (propiedad, itemsElegidosIds = []) => {
           contentContainerStyle={styles.listContent}
         />
       )}
-
       <TouchableOpacity style={styles.fab} onPress={abrirModalCrear}>
         <Ionicons name="add" size={30} color="#FFF" />
       </TouchableOpacity>
 
-      {/* --- MODAL 1: FORMULARIO --- */}
+      {/* MODAL FORMULARIO */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -329,107 +403,130 @@ const irACotizacion = (propiedad, itemsElegidosIds = []) => {
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Datos Básicos */}
               <Text style={styles.sectionHeader}>Datos Generales</Text>
-              <Text style={styles.label}>Título</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ej. Casa Moderna"
+                placeholder="Título"
                 value={form.titulo}
                 onChangeText={(t) => setForm({ ...form, titulo: t })}
               />
-
-              <Text style={styles.label}>Dirección</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Calle..."
+                placeholder="Dirección"
                 value={form.direccion}
                 onChangeText={(t) => setForm({ ...form, direccion: t })}
               />
-
               <View style={styles.rowInputs}>
-                <View style={{ flex: 1, marginRight: 10 }}>
-                  <Text style={styles.label}>Precio Base</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="0"
-                    keyboardType="numeric"
-                    value={form.precio}
-                    onChangeText={(t) => setForm({ ...form, precio: t })}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>Metros (m²)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="0"
-                    keyboardType="numeric"
-                    value={form.metrosTerreno}
-                    onChangeText={(t) => setForm({ ...form, metrosTerreno: t })}
-                  />
-                </View>
+                <TextInput
+                  style={[styles.input, { flex: 1, marginRight: 5 }]}
+                  placeholder="Precio"
+                  keyboardType="numeric"
+                  value={form.precio}
+                  onChangeText={(t) => setForm({ ...form, precio: t })}
+                />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Metros"
+                  keyboardType="numeric"
+                  value={form.metrosTerreno}
+                  onChangeText={(t) => setForm({ ...form, metrosTerreno: t })}
+                />
               </View>
               <View style={styles.rowInputs}>
-                <View style={{ flex: 1, marginRight: 10 }}>
-                  <Text style={styles.label}>Habitaciones</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="0"
-                    keyboardType="numeric"
-                    value={form.habitaciones}
-                    onChangeText={(t) => setForm({ ...form, habitaciones: t })}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>Baños</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="0"
-                    keyboardType="numeric"
-                    value={form.banos}
-                    onChangeText={(t) => setForm({ ...form, banos: t })}
-                  />
-                </View>
+                <TextInput
+                  style={[styles.input, { flex: 1, marginRight: 5 }]}
+                  placeholder="Hab"
+                  keyboardType="numeric"
+                  value={form.habitaciones}
+                  onChangeText={(t) => setForm({ ...form, habitaciones: t })}
+                />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Baños"
+                  keyboardType="numeric"
+                  value={form.banos}
+                  onChangeText={(t) => setForm({ ...form, banos: t })}
+                />
               </View>
-
-              {/* INPUT DE IMAGEN RESTAURADO */}
-              <Text style={styles.label}>URL Imagen (Opcional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="https://..."
-                value={form.imagen}
-                onChangeText={(t) => setForm({ ...form, imagen: t })}
-              />
 
               <View style={styles.divider} />
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginBottom: 10,
+                }}
+              >
+                <Text style={styles.sectionHeader}>Galería</Text>
+                <TouchableOpacity
+                  onPress={agregarCampoImagen}
+                  style={styles.addItemLink}
+                >
+                  <Text style={{ color: COLORS.accent, fontWeight: "bold" }}>
+                    + URL
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {form.imagenes.map((url, index) => (
+                <View key={index} style={styles.itemInputRow}>
+                  <TextInput
+                    style={[styles.inputSmall, { flex: 1, marginRight: 5 }]}
+                    placeholder={`URL ${index + 1}`}
+                    value={url}
+                    onChangeText={(t) => actualizarCampoImagen(t, index)}
+                  />
+                  {form.imagenes.length > 1 && (
+                    <TouchableOpacity
+                      onPress={() => borrarCampoImagen(index)}
+                      style={styles.deleteItemBtn}
+                    >
+                      <Ionicons
+                        name="trash-outline"
+                        size={20}
+                        color={COLORS.danger}
+                      />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))}
 
-              {/* --- SECCIÓN DE ITEMS --- */}
-              {/* Solo dejamos el título, quitamos el botón duplicado que estaba aquí */}
-              <Text style={styles.sectionHeader}>Configuración de Extras</Text>
-
+              <View style={styles.divider} />
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginBottom: 10,
+                }}
+              >
+                <Text style={styles.sectionHeader}>Extras</Text>
+                <TouchableOpacity
+                  onPress={agregarItemAlForm}
+                  style={styles.addItemLink}
+                >
+                  <Text style={{ color: COLORS.accent, fontWeight: "bold" }}>
+                    + Item
+                  </Text>
+                </TouchableOpacity>
+              </View>
               {form.items.map((item, index) => (
                 <View key={index} style={styles.itemInputRow}>
-                  <View style={{ flex: 2, marginRight: 5 }}>
-                    <TextInput
-                      style={styles.inputSmall}
-                      placeholder="Nombre Item"
-                      value={item.nombre}
-                      onChangeText={(text) =>
-                        actualizarItemDelForm(index, "nombre", text)
-                      }
-                    />
-                  </View>
-                  <View style={{ flex: 1, marginRight: 5 }}>
-                    <TextInput
-                      style={styles.inputSmall}
-                      placeholder="$ Costo"
-                      keyboardType="numeric"
-                      value={item.costo}
-                      onChangeText={(text) =>
-                        actualizarItemDelForm(index, "costo", text)
-                      }
-                    />
-                  </View>
+                  <TextInput
+                    style={[styles.inputSmall, { flex: 2, marginRight: 5 }]}
+                    placeholder="Nombre"
+                    value={item.nombre}
+                    onChangeText={(t) =>
+                      actualizarItemDelForm(index, "nombre", t)
+                    }
+                  />
+                  <TextInput
+                    style={[styles.inputSmall, { flex: 1, marginRight: 5 }]}
+                    placeholder="$"
+                    keyboardType="numeric"
+                    value={item.costo}
+                    onChangeText={(t) =>
+                      actualizarItemDelForm(index, "costo", t)
+                    }
+                  />
                   <TouchableOpacity
                     onPress={() => borrarItemDelForm(index)}
                     style={styles.deleteItemBtn}
@@ -442,28 +539,6 @@ const irACotizacion = (propiedad, itemsElegidosIds = []) => {
                   </TouchableOpacity>
                 </View>
               ))}
-
-              {form.items.length === 0 && (
-                <Text
-                  style={{
-                    color: COLORS.textLight,
-                    fontStyle: "italic",
-                    marginBottom: 10,
-                  }}
-                >
-                  Sin items adicionales configurados.
-                </Text>
-              )}
-
-              <TouchableOpacity
-                style={styles.addItemButtonFull}
-                onPress={agregarItemAlForm}
-              >
-                <Text style={styles.addItemButtonText}>
-                  + Agregar Nuevo Item
-                </Text>
-              </TouchableOpacity>
-
               <TouchableOpacity
                 style={styles.saveButton}
                 onPress={handleGuardarPropiedad}
@@ -480,7 +555,7 @@ const irACotizacion = (propiedad, itemsElegidosIds = []) => {
         </View>
       </Modal>
 
-      {/* --- MODAL 2: COTIZADOR --- */}
+      {/* MODAL COTIZADOR */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -490,28 +565,16 @@ const irACotizacion = (propiedad, itemsElegidosIds = []) => {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { height: "70%" }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Personalizar Extras</Text>
+              <Text style={styles.modalTitle}>Extras</Text>
               <TouchableOpacity onPress={() => setModalItemsVisible(false)}>
                 <Ionicons name="close" size={24} color={COLORS.text} />
               </TouchableOpacity>
             </View>
-
             <Text style={styles.propertyName}>{selectedProperty?.titulo}</Text>
             <Text style={styles.basePrice}>
-              Precio Base: ${selectedProperty?.precio?.toLocaleString()}
+              Base: ${selectedProperty?.precio?.toLocaleString()}
             </Text>
-
             <View style={styles.divider} />
-            <Text
-              style={{
-                fontSize: 14,
-                color: COLORS.textLight,
-                marginBottom: 10,
-              }}
-            >
-              Selecciona los adicionales que deseas:
-            </Text>
-
             <ScrollView>
               {selectedProperty?.items && selectedProperty.items.length > 0 ? (
                 selectedProperty.items.map((item, index) => {
@@ -524,13 +587,12 @@ const irACotizacion = (propiedad, itemsElegidosIds = []) => {
                         isSelected && styles.itemRowSelected,
                       ]}
                       onPress={() => toggleItemSelection(item.id)}
-                      activeOpacity={0.7}
                     >
                       <View
                         style={{
                           flexDirection: "row",
+                          gap: 10,
                           alignItems: "center",
-                          gap: 12,
                         }}
                       >
                         <Ionicons
@@ -562,14 +624,13 @@ const irACotizacion = (propiedad, itemsElegidosIds = []) => {
                 <Text
                   style={{ textAlign: "center", color: "#999", marginTop: 20 }}
                 >
-                  Sin items extras disponibles.
+                  Sin extras.
                 </Text>
               )}
             </ScrollView>
-
             <View style={styles.divider} />
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Total con Extras:</Text>
+              <Text style={styles.totalLabel}>Total:</Text>
               <Text style={styles.totalPrice}>
                 $
                 {(
@@ -577,8 +638,11 @@ const irACotizacion = (propiedad, itemsElegidosIds = []) => {
                 ).toLocaleString()}
               </Text>
             </View>
-            <TouchableOpacity style={styles.quoteButton} onPress={() => irACotizacion(selectedProperty, selectedItemIds)}>
-              <Text style={styles.quoteButtonText}>CONFIRMAR COTIZACIÓN</Text>
+            <TouchableOpacity
+              style={styles.quoteButton}
+              onPress={() => irACotizacion(selectedProperty, selectedItemIds)}
+            >
+              <Text style={styles.quoteButtonText}>CONFIRMAR</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -597,7 +661,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   listContent: { paddingHorizontal: 10, paddingBottom: 30 },
-
   card: {
     width: CARD_WIDTH,
     backgroundColor: COLORS.cardBg,
@@ -606,7 +669,45 @@ const styles = StyleSheet.create({
     elevation: 5,
     overflow: "hidden",
   },
-  cardImage: { width: "100%", height: 200, resizeMode: "cover" },
+  carouselContainer: {
+    width: "100%",
+    height: CARD_IMAGE_HEIGHT,
+    position: "relative",
+  },
+  cardImage: { width: "100%", height: "100%", resizeMode: "cover" },
+  arrowBtn: {
+    position: "absolute",
+    top: "50%",
+    marginTop: -20,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  arrowLeft: { left: 10 },
+  arrowRight: { right: 10 },
+  pagination: {
+    position: "absolute",
+    bottom: 10,
+    flexDirection: "row",
+    width: "100%",
+    justifyContent: "center",
+    gap: 5,
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(255,255,255,0.5)",
+  },
+  paginationDotActive: {
+    backgroundColor: COLORS.accent,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
   cardContent: { padding: 20 },
   price: { fontSize: 22, fontWeight: "bold", color: COLORS.accent },
   title: { fontSize: 18, fontWeight: "bold", color: COLORS.text },
@@ -628,8 +729,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     elevation: 5,
+    zIndex: 10,
   },
-
   buttonsContainer: { flexDirection: "row", gap: 10 },
   itemsButton: {
     flex: 1,
@@ -654,7 +755,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 14,
   },
-
   fab: {
     position: "absolute",
     bottom: 30,
@@ -693,12 +793,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 10,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: COLORS.textLight,
-    marginBottom: 5,
-  },
   rowInputs: { flexDirection: "row" },
   saveButton: {
     backgroundColor: COLORS.text,
@@ -720,7 +814,6 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
   },
-
   sectionHeader: {
     fontSize: 18,
     fontWeight: "bold",
@@ -740,19 +833,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     width: "100%",
   },
-  deleteItemBtn: { padding: 10, backgroundColor: "#ffe6e6", borderRadius: 8 },
-  addItemButtonFull: {
-    backgroundColor: "#f0f0f0",
-    padding: 12,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 5,
-    borderStyle: "dashed",
-    borderWidth: 1,
-    borderColor: "#ccc",
+  deleteItemBtn: {
+    padding: 10,
+    backgroundColor: "#ffe6e6",
+    borderRadius: 8,
+    marginLeft: 5,
   },
-  addItemButtonText: { color: COLORS.text, fontWeight: "bold" },
-
+  addItemLink: { padding: 5 },
   propertyName: { fontSize: 18, fontWeight: "600", color: COLORS.text },
   basePrice: { fontSize: 16, color: COLORS.textLight, marginBottom: 15 },
   divider: { height: 1, backgroundColor: "#EEE", marginVertical: 15 },
