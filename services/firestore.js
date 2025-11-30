@@ -23,16 +23,15 @@ const propiedadesDummy = [
     habitaciones: 4,
     banos: 3.5,
     metrosTerreno: 350,
-    // ARRAY DE IMÁGENES
     imagenes: [
       "https://images.unsplash.com/photo-1600596542815-22b489997b6d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
       "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
       "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
     ],
     items: [
-      { id: 'i1', nombre: 'Muebles de Lujo', costo: 250000 },
-      { id: 'i2', nombre: 'Portón Eléctrico', costo: 20000 },
-      { id: 'i3', nombre: 'Jacuzzi Exterior', costo: 150000 }
+      { id: 'i1', nombre: 'Muebles de Lujo', costo: 250000, imagen: 'https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' },
+      { id: 'i2', nombre: 'Portón Eléctrico', costo: 20000, imagen: 'https://images.unsplash.com/photo-1595846519845-68e298c2edd8?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' },
+      { id: 'i3', nombre: 'Jacuzzi Exterior', costo: 150000, imagen: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' }
     ]
   },
   {
@@ -49,9 +48,9 @@ const propiedadesDummy = [
       "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
     ],
     items: [
-      { id: 'i1', nombre: 'Muebles de Diseñador', costo: 250000 },
-      { id: 'i2', nombre: 'Persianas Eléctricas', costo: 20000 },
-      { id: 'i3', nombre: 'Jacuzzi en Terraza', costo: 150000 }
+      { id: 'i1', nombre: 'Muebles de Diseñador', costo: 250000, imagen: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' },
+      { id: 'i2', nombre: 'Persianas Eléctricas', costo: 20000, imagen: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' },
+      { id: 'i3', nombre: 'Jacuzzi en Terraza', costo: 150000, imagen: 'https://images.unsplash.com/photo-1575413552097-9db698dc9688?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' }
     ]
   },
   {
@@ -68,9 +67,9 @@ const propiedadesDummy = [
       "https://images.unsplash.com/photo-1570129477492-45c003edd2be?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
     ],
     items: [
-      { id: 'i1', nombre: 'Muebles Rústicos', costo: 250000 },
-      { id: 'i2', nombre: 'Portón de Seguridad', costo: 20000 },
-      { id: 'i3', nombre: 'Jacuzzi con Calefacción', costo: 150000 }
+      { id: 'i1', nombre: 'Muebles Rústicos', costo: 250000, imagen: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' },
+      { id: 'i2', nombre: 'Portón de Seguridad', costo: 20000, imagen: 'https://plus.unsplash.com/premium_photo-1680302272828-66175e307779?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' },
+      { id: 'i3', nombre: 'Jacuzzi con Calefacción', costo: 150000, imagen: 'https://images.unsplash.com/photo-1516455590571-18256e5bb9ff?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' }
     ]
   }
 ];
