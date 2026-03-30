@@ -40,6 +40,16 @@ export default function RootLayout() {
           name="(tabs)"
           options={{ headerShown: false }} // We'll let the tab layout manage its own header
         />
+
+        <Stack.Screen
+          name="admin"
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="validation"
+          options={{ headerShown: false }}
+        />
         
         {/* 3. Any other screens (like a modal) */}
         {/* You probably have this already */}

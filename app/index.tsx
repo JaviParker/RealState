@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  StatusBar
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext'; // Check your path
@@ -32,11 +33,10 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin, isValidated } = useAuth();
   const router = useRouter();
 
   // This is the "Gatekeeper" logic.
-  // It runs when 'user' or 'loading' state changes.
   useEffect(() => {
     if (loading) {
       // Still checking auth, wait...
@@ -44,11 +44,18 @@ export default function LoginScreen() {
     }
     
     if (user) {
-      // User is logged in, send them to the main app
-      router.replace('/(tabs)/home'); // Assumes your main app is in a (tabs) group
+      if (isAdmin) {
+        router.replace('/admin');
+      } else if (isValidated) {
+        // User is logged in and validated, send them to the main app
+        router.replace('/(tabs)/home');
+      } else {
+        // User is logged in but NOT validated
+        router.replace('/validation');
+      }
     }
     // If no user, this screen will just render the Login UI
-  }, [user, loading, router]);
+  }, [user, loading, isAdmin, isValidated, router]);
 
   const handleEmailLogin = async () => {
     if (!email || !password) {
@@ -164,6 +171,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   contentView: {
     flex: 1,

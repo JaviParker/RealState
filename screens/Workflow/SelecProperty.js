@@ -20,6 +20,7 @@ import {
   agregarPropiedad,
   actualizarPropiedad,
 } from "../../services/firestore";
+import { pickImageFromGallery, uploadImageToFirebase } from "../../services/storage";
 import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
 
 // --- COLORES ---
@@ -123,6 +124,7 @@ export default function SelectProperty() {
   // --- ESTADOS FORMULARIO ---
   const [modalFormVisible, setModalFormVisible] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({
     titulo: "",
@@ -203,6 +205,21 @@ export default function SelectProperty() {
   const borrarCampoImagen = (index) => {
     const nuevas = form.imagenes.filter((_, i) => i !== index);
     setForm({ ...form, imagenes: nuevas });
+  };
+
+  const handleCargarFotoLocal = async (index) => {
+    const uri = await pickImageFromGallery();
+    if (!uri) return; // Canceló
+    
+    setUploadingImage(true);
+    const descargaURL = await uploadImageToFirebase(uri);
+    setUploadingImage(false);
+
+    if (descargaURL) {
+       actualizarCampoImagen(descargaURL, index);
+    } else {
+       Alert.alert("Error", "No se pudo subir la imagen a la nube. Intenta nuevamente.");
+    }
   };
 
   const agregarItemAlForm = () =>
@@ -463,22 +480,39 @@ export default function SelectProperty() {
                   style={styles.addItemLink}
                 >
                   <Text style={{ color: COLORS.accent, fontWeight: "bold" }}>
-                    + URL
+                    + FOTO
                   </Text>
                 </TouchableOpacity>
               </View>
               {form.imagenes.map((url, index) => (
-                <View key={index} style={styles.itemInputRow}>
-                  <TextInput
-                    style={[styles.inputSmall, { flex: 1, marginRight: 5 }]}
-                    placeholder={`URL ${index + 1}`}
-                    value={url}
-                    onChangeText={(t) => actualizarCampoImagen(t, index)}
-                  />
+                <View key={index} style={[styles.itemInputRow, { alignItems: 'center', marginBottom: 15 }]}>
+                  {url ? (
+                    <Image source={{ uri: url }} style={{ width: 50, height: 50, borderRadius: 8, marginRight: 10 }} />
+                  ) : (
+                    <View style={{ width: 50, height: 50, borderRadius: 8, backgroundColor: '#E0E0E0', marginRight: 10, justifyContent: 'center', alignItems: 'center' }}>
+                        <Ionicons name="image-outline" size={24} color={COLORS.textLight} />
+                    </View>
+                  )}
+                  
+                  <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: COLORS.text, padding: 10, borderRadius: 8, marginRight: 10, alignItems: 'center' }}
+                    onPress={() => handleCargarFotoLocal(index)}
+                    disabled={uploadingImage}
+                  >
+                    {uploadingImage ? (
+                      <ActivityIndicator color={COLORS.background} size="small" />
+                    ) : (
+                      <Text style={{ color: COLORS.background, fontWeight: 'bold' }}>
+                        {url ? "Cambiar Foto" : "Subir Foto"}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+
                   {form.imagenes.length > 1 && (
                     <TouchableOpacity
                       onPress={() => borrarCampoImagen(index)}
-                      style={styles.deleteItemBtn}
+                      style={[styles.deleteItemBtn, { height: 40, width: 40, padding: 0, justifyContent: 'center', alignItems: 'center' }]}
+                      disabled={uploadingImage}
                     >
                       <Ionicons
                         name="trash-outline"

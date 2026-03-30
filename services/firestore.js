@@ -7,7 +7,9 @@ import {
   updateDoc, 
   query, 
   where,
-  deleteDoc
+  deleteDoc,
+  getDoc,
+  setDoc
 } from 'firebase/firestore';
 import { db } from '../firebaseConfig'; 
 
@@ -328,3 +330,130 @@ export const obtenerCotizacionesGlobales = async () => {
     return [];
   }
 };
+
+// --- FUNCIÓN 14: OBTENER CLAVE DE VALIDACIÓN (ADMIN) ---
+export const getVerificationKey = async () => {
+  try {
+    const docRef = doc(db, 'adminConfig', 'validationKey');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data().key;
+    } else {
+      // Si no existe, creamos una primera
+      return await generateVerificationKey();
+    }
+  } catch (error) {
+    console.error("Error obteniendo llave de validación: ", error);
+    return null;
+  }
+};
+
+// --- FUNCIÓN 15: GENERAR NUEVA CLAVE DE VALIDACIÓN (ADMIN) ---
+export const generateVerificationKey = async () => {
+  try {
+    // Generador alfanumérico aleatorio de 13 caracteres
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let newKey = '';
+    for (let i = 0; i < 13; i++) {
+        newKey += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    const docRef = doc(db, 'adminConfig', 'validationKey');
+    // setDoc crea o sobrescribe el documento
+    await setDoc(docRef, { key: newKey, updatedAt: new Date() });
+    return newKey;
+  } catch (error) {
+    console.error("Error generando nueva llave: ", error);
+    return null;
+  }
+};
+
+// --- FUNCIÓN 16: REVISAR SI EL USUARIO ESTÁ VALIDADO ---
+export const checkUserValidation = async (uid) => {
+  try {
+    const docRef = doc(db, 'users', uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data().isValidated === true;
+    }
+    return false; // Si no existe el doc, no está validado
+  } catch (error) {
+    console.error("Error revisando validación de usuario: ", error);
+    return false; // Por seguridad, si hay error, no está validado
+  }
+};
+
+// --- FUNCIÓN 17: MARCAR USUARIO COMO VALIDADO ---
+export const validateUser = async (uid, email) => {
+  try {
+    const docRef = doc(db, 'users', uid);
+    // Usamos setDoc con merge:true por si acaso ya tenía otra info
+    await setDoc(docRef, {
+        email: email,
+        isValidated: true,
+        validatedAt: new Date()
+    }, { merge: true });
+    return true;
+  } catch (error) {
+    console.error("Error validando usuario: ", error);
+    return false;
+  }
+};
+
+// --- FUNCIÓN 18: REGISTRAR USUARIO INICIAL (PENDIENTE) ---
+export const registerInitialUser = async (firebaseUser) => {
+  try {
+    const docRef = doc(db, 'users', firebaseUser.uid);
+    const docSnap = await getDoc(docRef);
+    
+    // Solo lo registramos si NO existía antes en la coleción
+    if (!docSnap.exists()) {
+      await setDoc(docRef, {
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName || 'Agente sin Nombre',
+        isValidated: false,
+        createdAt: new Date()
+      });
+    }
+  } catch (error) {
+    console.error("Error al registrar usuario inicial: ", error);
+  }
+};
+
+// --- FUNCIÓN 19: OBTENER TODOS LOS USUARIOS (ADMIN PANEL) ---
+export const getAllUsers = async () => {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'users'));
+    const usuarios = [];
+    querySnapshot.forEach((docSnap) => {
+      usuarios.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    
+    // Ordenamos para que los desvalidados aparezcan primero, luego por fecha
+    return usuarios.sort((a, b) => {
+      if (a.isValidated === b.isValidated) {
+        return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+      }
+      return a.isValidated ? 1 : -1;
+    });
+  } catch (error) {
+    console.error("Error obteniendo usuarios: ", error);
+    return [];
+  }
+};
+
+// --- FUNCIÓN 20: ALTERNAR BLOQUEO DE USUARIO (ADMIN PANEL) ---
+export const toggleUserValidation = async (uid, currentState) => {
+  try {
+    const docRef = doc(db, 'users', uid);
+    await updateDoc(docRef, {
+        isValidated: !currentState,
+        updatedAt: new Date()
+    });
+    return true;
+  } catch (error) {
+    console.error("Error alternando validación de usuario: ", error);
+    return false;
+  }
+};
+
