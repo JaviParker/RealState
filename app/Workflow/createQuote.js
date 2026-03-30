@@ -12,14 +12,17 @@ import {
   agregarEquipo,
   actualizarEquipo,
   eliminarEquipo,
-  actualizarPropiedad // <--- IMPORTANTE: Necesitamos esto para guardar los cambios en los items
+  actualizarPropiedad,
+  obtenerPropiedadPorId
 } from "../../services/firestore";
+import { pickImageFromGallery, uploadImageToFirebase } from "../../services/storage";
 import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
 
 const COLORS = {
   background: "#FFFFFF", text: "#000000", textLight: "#666666",
   accent: "#9A6C42", cardBg: "#F9F9F9", inputBg: "#F0F0F0",
-  success: "#28a745", danger: "#dc3545", activeItem: "#FAF3EB"
+  success: "#28a745", danger: "#dc3545", activeItem: "#FAF3EB",
+  placeholder: "#999999"
 };
 
 export default function CreateQuote() {
@@ -55,22 +58,66 @@ export default function CreateQuote() {
 
   const [cliente, setCliente] = useState({ nombre: "", telefono: "", correo: "" });
 
+  // --- ESTADOS Y FUNCIONES DE UPLOAD ---
+  const [uploadingTeamImage, setUploadingTeamImage] = useState(false);
+  const [uploadingItemImage, setUploadingItemImage] = useState(false);
+
+  const handleCargarFotoEquipo = async () => {
+    const uri = await pickImageFromGallery();
+    if (!uri) return;
+
+    setUploadingTeamImage(true);
+    const descargaURL = await uploadImageToFirebase(uri, 'equipos');
+    setUploadingTeamImage(false);
+
+    if (descargaURL) {
+      setTeamForm({ ...teamForm, imagen: descargaURL });
+    } else {
+      Alert.alert("Error", "No se pudo subir la foto del equipo.");
+    }
+  };
+
+  const handleCargarFotoExtra = async () => {
+    const uri = await pickImageFromGallery();
+    if (!uri) return;
+
+    setUploadingItemImage(true);
+    const descargaURL = await uploadImageToFirebase(uri, 'extras');
+    setUploadingItemImage(false);
+
+    if (descargaURL) {
+      setItemForm({ ...itemForm, imagen: descargaURL });
+    } else {
+      Alert.alert("Error", "No se pudo subir la foto del extra.");
+    }
+  };
+
   // INICIALIZACIÓN
   useEffect(() => {
-    // 1. Cargar items de la propiedad
-    if (propiedad?.items) {
-        setItemsDisponibles(propiedad.items);
-    }
-    
-    // 2. Marcar items pre-seleccionados
-    if (params.items) {
-        const preSelected = JSON.parse(params.items);
-        const ids = preSelected.map(i => i.id);
-        setSelectedItemIds(ids);
-    }
+    const fetchData = async () => {
+        if (!propiedad) return;
+        
+        // 1. Cargar items directos de Firebase para integridad
+        const dataFresca = await obtenerPropiedadPorId(propiedad.id);
+        if (dataFresca && dataFresca.items) {
+            setItemsDisponibles(dataFresca.items);
+        } else if (propiedad.items) {
+            setItemsDisponibles(propiedad.items);
+        }
 
-    // 3. Cargar equipos
-    cargarEquipos();
+        // 2. Marcar items pre-seleccionados
+        if (params.items) {
+            try {
+                const preSelected = JSON.parse(params.items);
+                const ids = preSelected.map(i => i.id);
+                setSelectedItemIds(ids);
+            } catch (e) { console.log('Sin preselección'); }
+        }
+
+        // 3. Cargar equipos
+        cargarEquipos();
+    };
+    fetchData();
   }, []);
 
   // --- CÁLCULOS ---
@@ -346,9 +393,9 @@ export default function CreateQuote() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Datos del Cliente</Text>
-          <TextInput style={styles.input} placeholder="Nombre Completo" value={cliente.nombre} onChangeText={(t) => setCliente({ ...cliente, nombre: t })} />
-          <TextInput style={styles.input} placeholder="Teléfono" keyboardType="phone-pad" value={cliente.telefono} onChangeText={(t) => setCliente({ ...cliente, telefono: t })} />
-          <TextInput style={styles.input} placeholder="Correo Electrónico" keyboardType="email-address" autoCapitalize="none" value={cliente.correo} onChangeText={(t) => setCliente({ ...cliente, correo: t })} />
+          <TextInput style={styles.input} placeholder="Nombre Completo" placeholderTextColor={COLORS.placeholder} value={cliente.nombre} onChangeText={(t) => setCliente({ ...cliente, nombre: t })} />
+          <TextInput style={styles.input} placeholder="Teléfono" placeholderTextColor={COLORS.placeholder} keyboardType="phone-pad" value={cliente.telefono} onChangeText={(t) => setCliente({ ...cliente, telefono: t })} />
+          <TextInput style={styles.input} placeholder="Correo Electrónico" placeholderTextColor={COLORS.placeholder} keyboardType="email-address" autoCapitalize="none" value={cliente.correo} onChangeText={(t) => setCliente({ ...cliente, correo: t })} />
         </View>
 
         <View style={styles.section}>
@@ -377,22 +424,45 @@ export default function CreateQuote() {
             </View>
             <ScrollView>
               <Text style={styles.label}>Nombre del Equipo</Text>
-              <TextInput style={styles.input} value={teamForm.nombre} onChangeText={(t) => setTeamForm({ ...teamForm, nombre: t })} />
+              <TextInput style={styles.input} placeholder="Nombre del Equipo" placeholderTextColor={COLORS.placeholder} value={teamForm.nombre} onChangeText={(t) => setTeamForm({ ...teamForm, nombre: t })} />
               <Text style={styles.label}>Líder / Encargado</Text>
-              <TextInput style={styles.input} value={teamForm.lider} onChangeText={(t) => setTeamForm({ ...teamForm, lider: t })} />
+              <TextInput style={styles.input} placeholder="Líder" placeholderTextColor={COLORS.placeholder} value={teamForm.lider} onChangeText={(t) => setTeamForm({ ...teamForm, lider: t })} />
               <View style={styles.rowInputs}>
                 <View style={{ flex: 1, marginRight: 10 }}>
                   <Text style={styles.label}>Costo Semanal ($)</Text>
-                  <TextInput style={styles.input} keyboardType="numeric" value={teamForm.costoSemanal} onChangeText={(t) => setTeamForm({ ...teamForm, costoSemanal: t })} />
+                  <TextInput style={styles.input} placeholder="0" placeholderTextColor={COLORS.placeholder} keyboardType="numeric" value={teamForm.costoSemanal} onChangeText={(t) => setTeamForm({ ...teamForm, costoSemanal: t })} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.label}>Tiempo Estimado</Text>
-                  <TextInput style={styles.input} value={teamForm.tiempoEstimado} onChangeText={(t) => setTeamForm({ ...teamForm, tiempoEstimado: t })} />
+                  <TextInput style={styles.input} placeholder="Ejem: 4 Semanas" placeholderTextColor={COLORS.placeholder} value={teamForm.tiempoEstimado} onChangeText={(t) => setTeamForm({ ...teamForm, tiempoEstimado: t })} />
                 </View>
               </View>
-              <Text style={styles.label}>URL Foto Equipo (Opcional)</Text>
-              <TextInput style={styles.input} placeholder="https://..." value={teamForm.imagen} onChangeText={(t) => setTeamForm({ ...teamForm, imagen: t })} />
-              <TouchableOpacity style={styles.saveButton} onPress={handleGuardarEquipo} disabled={savingTeam}>
+              <Text style={styles.label}>Foto Equipo (Opcional)</Text>
+              <View style={[styles.input, { flexDirection: 'row', alignItems: 'center', padding: 10, paddingLeft: 10 }]}>
+                  {teamForm.imagen ? (
+                    <View style={{ width: 45, height: 45, borderRadius: 8, marginRight: 10, overflow: 'hidden', backgroundColor: '#E0E0E0' }}>
+                        <Image source={{ uri: teamForm.imagen }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                    </View>
+                  ) : (
+                    <View style={{ width: 45, height: 45, borderRadius: 8, backgroundColor: '#E0E0E0', marginRight: 10, justifyContent: 'center', alignItems: 'center' }}>
+                        <Ionicons name="image-outline" size={20} color={COLORS.textLight} />
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: COLORS.text, padding: 10, borderRadius: 8, alignItems: 'center' }}
+                    onPress={handleCargarFotoEquipo}
+                    disabled={uploadingTeamImage}
+                  >
+                    {uploadingTeamImage ? (
+                      <ActivityIndicator color={COLORS.background} size="small" />
+                    ) : (
+                      <Text style={{ color: COLORS.background, fontWeight: 'bold', fontSize: 13 }}>
+                        {teamForm.imagen ? "Cambiar Foto" : "Subir desde Galería"}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+              </View>
+              <TouchableOpacity style={[styles.saveButton, { marginTop: 10 }]} onPress={handleGuardarEquipo} disabled={savingTeam}>
                 {savingTeam ? <ActivityIndicator color="#FFF" /> : <Text style={styles.saveButtonText}>Guardar Equipo</Text>}
               </TouchableOpacity>
             </ScrollView>
@@ -410,15 +480,38 @@ export default function CreateQuote() {
             </View>
             <ScrollView>
               <Text style={styles.label}>Nombre del Acabado</Text>
-              <TextInput style={styles.input} placeholder="Ej. Alberca" value={itemForm.nombre} onChangeText={(t) => setItemForm({ ...itemForm, nombre: t })} />
+              <TextInput style={styles.input} placeholder="Ej. Alberca" placeholderTextColor={COLORS.placeholder} value={itemForm.nombre} onChangeText={(t) => setItemForm({ ...itemForm, nombre: t })} />
               
               <Text style={styles.label}>Costo Adicional ($)</Text>
-              <TextInput style={styles.input} placeholder="0" keyboardType="numeric" value={itemForm.costo} onChangeText={(t) => setItemForm({ ...itemForm, costo: t })} />
+              <TextInput style={styles.input} placeholder="0" placeholderTextColor={COLORS.placeholder} keyboardType="numeric" value={itemForm.costo} onChangeText={(t) => setItemForm({ ...itemForm, costo: t })} />
               
-              <Text style={styles.label}>URL Foto (Opcional)</Text>
-              <TextInput style={styles.input} placeholder="https://..." value={itemForm.imagen} onChangeText={(t) => setItemForm({ ...itemForm, imagen: t })} />
+              <Text style={styles.label}>Foto del Extra (Opcional)</Text>
+              <View style={[styles.input, { flexDirection: 'row', alignItems: 'center', padding: 10, paddingLeft: 10 }]}>
+                  {itemForm.imagen ? (
+                    <View style={{ width: 45, height: 45, borderRadius: 8, marginRight: 10, overflow: 'hidden', backgroundColor: '#E0E0E0' }}>
+                        <Image source={{ uri: itemForm.imagen }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                    </View>
+                  ) : (
+                    <View style={{ width: 45, height: 45, borderRadius: 8, backgroundColor: '#E0E0E0', marginRight: 10, justifyContent: 'center', alignItems: 'center' }}>
+                        <Ionicons name="image-outline" size={20} color={COLORS.textLight} />
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: COLORS.text, padding: 10, borderRadius: 8, alignItems: 'center' }}
+                    onPress={handleCargarFotoExtra}
+                    disabled={uploadingItemImage}
+                  >
+                    {uploadingItemImage ? (
+                      <ActivityIndicator color={COLORS.background} size="small" />
+                    ) : (
+                      <Text style={{ color: COLORS.background, fontWeight: 'bold', fontSize: 13 }}>
+                        {itemForm.imagen ? "Cambiar Foto" : "Subir desde Galería"}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+              </View>
 
-              <TouchableOpacity style={styles.saveButton} onPress={handleGuardarItem} disabled={savingItem}>
+              <TouchableOpacity style={[styles.saveButton, { marginTop: 10 }]} onPress={handleGuardarItem} disabled={savingItem}>
                 {savingItem ? <ActivityIndicator color="#FFF" /> : <Text style={styles.saveButtonText}>Guardar Extra</Text>}
               </TouchableOpacity>
             </ScrollView>

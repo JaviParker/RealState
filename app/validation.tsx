@@ -26,6 +26,7 @@ const COLORS = {
   accent: '#9A6C42',
   border: '#E0E0E0',
   lightBackground: '#F7F7F7',
+  placeholder: '#999999',
 };
 
 export default function ValidationScreen() {
@@ -131,7 +132,7 @@ export default function ValidationScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ingresa los 13 caracteres"
-          placeholderTextColor={COLORS.textSecondary}
+          placeholderTextColor={COLORS.placeholder}
           value={inputKey}
           onChangeText={setInputKey}
           autoCapitalize="none"

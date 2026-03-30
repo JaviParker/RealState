@@ -140,15 +140,32 @@ export const agregarPropiedad = async (nuevaPropiedad) => {
   }
 };
 
+// --- FUNCIÓN 3.5: OBTENER PROPIEDAD POR ID ---
+export const obtenerPropiedadPorId = async (id) => {
+  try {
+    const docRef = doc(db, COLLECTION_NAME, id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() };
+    }
+    return null;
+  } catch (error) {
+    console.error("Error obteniendo propiedad por ID: ", error);
+    return null;
+  }
+};
+
 // --- FUNCIÓN 4: ACTUALIZAR PROPIEDAD ---
 export const actualizarPropiedad = async (id, datosActualizados) => {
   try {
     const docRef = doc(db, COLLECTION_NAME, id);
-    const datosAGuardar = {
-      ...datosActualizados,
-      imagenes: Array.isArray(datosActualizados.imagenes) ? datosActualizados.imagenes : [],
-      imagen: null,
-    };
+    const datosAGuardar = { ...datosActualizados };
+    // Solo actualizamos imagenes si viene en los campos a actualizar
+    if (datosActualizados.imagenes !== undefined) {
+      datosAGuardar.imagenes = Array.isArray(datosActualizados.imagenes) ? datosActualizados.imagenes : [];
+      datosAGuardar.imagen = null;
+    }
+    
     await updateDoc(docRef, datosAGuardar);
     console.log("Propiedad actualizada ID: ", id);
     return true;

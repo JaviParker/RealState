@@ -26,6 +26,7 @@ const COLORS = {
   accent: '#9A6C42',      // Wood Detail (a warm, rich brown)
   border: '#E0E0E0',
   lightBackground: '#F7F7F7',
+  placeholder: '#999999',
 };
 
 export default function LoginScreen() {
@@ -111,7 +112,7 @@ export default function LoginScreen() {
         <TextInput
           style={styles.input}
           placeholder="Agent Email"
-          placeholderTextColor={COLORS.textSecondary}
+          placeholderTextColor={COLORS.placeholder}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -120,7 +121,7 @@ export default function LoginScreen() {
         <TextInput
           style={styles.input}
           placeholder="Password"
-          placeholderTextColor={COLORS.textSecondary}
+          placeholderTextColor={COLORS.placeholder}
           value={password}
           onChangeText={setPassword}
           secureTextEntry

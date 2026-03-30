@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
   TextInput,
   ScrollView,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import {
   obtenerPropiedades,
   sembrarPropiedades,
@@ -34,6 +34,7 @@ const COLORS = {
   success: "#28a745",
   danger: "#dc3545",
   inactive: "#CCCCCC",
+  placeholder: "#999999",
 };
 
 const { width } = Dimensions.get("window");
@@ -142,9 +143,11 @@ export default function SelectProperty() {
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [selectedItemIds, setSelectedItemIds] = useState([]);
 
-  useEffect(() => {
-    cargarDatos();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      cargarDatos();
+    }, [])
+  );
 
   const cargarDatos = async () => {
     setLoading(true);
@@ -280,6 +283,7 @@ export default function SelectProperty() {
         id: item.id || `item_${Date.now()}_${index}`,
         nombre: item.nombre || "Item",
         costo: parseFloat(item.costo) || 0,
+        imagen: item.imagen || "",
       }));
       const datos = {
         ...form,
@@ -424,12 +428,14 @@ export default function SelectProperty() {
               <TextInput
                 style={styles.input}
                 placeholder="Título"
+                placeholderTextColor={COLORS.placeholder}
                 value={form.titulo}
                 onChangeText={(t) => setForm({ ...form, titulo: t })}
               />
               <TextInput
                 style={styles.input}
                 placeholder="Dirección"
+                placeholderTextColor={COLORS.placeholder}
                 value={form.direccion}
                 onChangeText={(t) => setForm({ ...form, direccion: t })}
               />
@@ -437,6 +443,7 @@ export default function SelectProperty() {
                 <TextInput
                   style={[styles.input, { flex: 1, marginRight: 5 }]}
                   placeholder="Precio"
+                  placeholderTextColor={COLORS.placeholder}
                   keyboardType="numeric"
                   value={form.precio}
                   onChangeText={(t) => setForm({ ...form, precio: t })}
@@ -444,6 +451,7 @@ export default function SelectProperty() {
                 <TextInput
                   style={[styles.input, { flex: 1 }]}
                   placeholder="Metros"
+                  placeholderTextColor={COLORS.placeholder}
                   keyboardType="numeric"
                   value={form.metrosTerreno}
                   onChangeText={(t) => setForm({ ...form, metrosTerreno: t })}
@@ -453,6 +461,7 @@ export default function SelectProperty() {
                 <TextInput
                   style={[styles.input, { flex: 1, marginRight: 5 }]}
                   placeholder="Hab"
+                  placeholderTextColor={COLORS.placeholder}
                   keyboardType="numeric"
                   value={form.habitaciones}
                   onChangeText={(t) => setForm({ ...form, habitaciones: t })}
@@ -460,6 +469,7 @@ export default function SelectProperty() {
                 <TextInput
                   style={[styles.input, { flex: 1 }]}
                   placeholder="Baños"
+                  placeholderTextColor={COLORS.placeholder}
                   keyboardType="numeric"
                   value={form.banos}
                   onChangeText={(t) => setForm({ ...form, banos: t })}
@@ -547,6 +557,7 @@ export default function SelectProperty() {
                   <TextInput
                     style={[styles.inputSmall, { flex: 2, marginRight: 5 }]}
                     placeholder="Nombre"
+                    placeholderTextColor={COLORS.placeholder}
                     value={item.nombre}
                     onChangeText={(t) =>
                       actualizarItemDelForm(index, "nombre", t)
@@ -555,6 +566,7 @@ export default function SelectProperty() {
                   <TextInput
                     style={[styles.inputSmall, { flex: 1, marginRight: 5 }]}
                     placeholder="$"
+                    placeholderTextColor={COLORS.placeholder}
                     keyboardType="numeric"
                     value={item.costo}
                     onChangeText={(t) =>
